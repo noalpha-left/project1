@@ -138,7 +138,7 @@ def run_regression(x, y):
 # ------------------ APP ------------------
 st.sidebar.title("Configuration")
 ticker = st.sidebar.text_input("Enter Stock Ticker (e.g., AAPL)", "AAPL")
-date_range = st.sidebar.date_input("Select Date Range", [datetime.today() - timedelta(days=730), datetime.today()]) - timedelta(days=730), datetime.today()]) - timedelta(days=30), datetime.today()])
+date_range = st.sidebar.date_input("Select Date Range", [datetime.today() - timedelta(days=730), datetime.today()]) - timedelta(days=730), datetime.today()]) - timedelta(days=730), datetime.today()]) - timedelta(days=30), datetime.today()])
 sentiment_filter = st.sidebar.slider("Minimum Sentiment Score", -100.0, 100.0, -100.0)
 use_finbert = st.sidebar.checkbox("Use FinBERT for Sentiment", value=False)
 
