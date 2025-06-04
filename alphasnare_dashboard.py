@@ -231,7 +231,8 @@ if st.sidebar.button("Analyze"):
 
             sentiment_time_df = df.groupby("Date")["Sentiment Score"].mean().sort_index().reset_index()
 sentiment_time_df["Date"] = pd.to_datetime(sentiment_time_df["Date"]).dt.date
-price_data = yf.download(ticker, period="6mo")
+
+            price_data = yf.download(ticker, period="6mo")
             price_data.reset_index(inplace=True)
             price_data["Date"] = price_data["Date"].dt.date
             merged = pd.merge(sentiment_time_df, price_data[["Date", "Close"]], on="Date", how="inner")
