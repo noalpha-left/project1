@@ -138,7 +138,7 @@ def run_regression(x, y):
 # ------------------ APP ------------------
 st.sidebar.title("Configuration")
 ticker = st.sidebar.text_input("Enter Stock Ticker (e.g., AAPL)", "AAPL")
-date_range = st.sidebar.date_input("Select Date Range", [datetime.today() - timedelta(days=30), datetime.today()])
+date_range = st.sidebar.date_input("Select Date Range", [datetime.today() - timedelta(days=730), datetime.today()]) - timedelta(days=30), datetime.today()])
 sentiment_filter = st.sidebar.slider("Minimum Sentiment Score", -100.0, 100.0, -100.0)
 use_finbert = st.sidebar.checkbox("Use FinBERT for Sentiment", value=False)
 
@@ -165,18 +165,37 @@ if ticker:
     df = df.sort_values("Date")
 
     st.subheader(f"📈 Sentiment Overview for {ticker}")
+    if not df.empty:
+        st.markdown(f"**Avg Sentiment:** {df['Sentiment Score'].mean():.2f}%")
+        st.markdown(f"**Positive Articles:** {(df['Sentiment Score'] > 0).sum()}")
+        st.markdown(f"**Negative Articles:** {(df['Sentiment Score'] < 0).sum()}")
+        st.markdown(f"**Sources Used:** {df['Source'].nunique()}")
     st.dataframe(df)
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(6, 3))
     ax.plot(df["Date"], df["Sentiment Score"], label="Sentiment")
     ax.plot(df["Date"], df["Trend"], label="Trend Derivative", linestyle="--")
     ax.set_title("Sentiment & Trend Over Time")
+    ax.xaxis.set_major_locator(plt.MaxNLocator(6))
     ax.set_xlabel("Date")
     ax.legend()
     st.pyplot(fig)
 
     reg = run_regression(df["Sentiment Score"], range(len(df)))
     st.markdown("### 📐 Regression Stats")
+    if not df.empty:
+        try:
+            fin_df = ticker_obj.financials.T
+            earnings = fin_df[['Total Revenue', 'EBITDA']].dropna()
+            if not earnings.empty:
+                x = earnings['Total Revenue'].values.astype(float)
+                y = earnings['EBITDA'].values.astype(float)
+                fin_reg = run_regression(x, y)
+                st.markdown("**📊 Earnings Regression (EBITDA vs Revenue)**")
+                st.markdown(f"- **R**: {round(fin_reg['r'], 3)}")
+                st.markdown(f"- **R²**: {round(fin_reg['r2'], 3)}")
+        except Exception as e:
+            st.markdown("_Financial regression failed._")
     st.markdown(f"- **R**: {round(reg['r'], 3)}")
     st.markdown(f"- **R²**: {round(reg['r2'], 3)}")
     st.markdown(f"- **p-value**: {round(reg['p'], 5)}")
@@ -192,13 +211,25 @@ if ticker:
     df["Cumulative"] = (1 + df["Returns"]).cumprod()
     df["Strategy Cum"] = (1 + df["Strategy"]).cumprod()
 
-    st.subheader("📊 Backtest: Cumulative Strategy")
-    fig, ax = plt.subplots()
+    col1, col2 = st.columns([3, 1])
+    with col2:
+        st.subheader("💡 Financials")
+        try:
+            ticker_obj = yf.Ticker(ticker)
+            fin_df = ticker_obj.financials.T
+            st.markdown("**Yearly Revenue (B):** " + str(round(fin_df['Total Revenue'].iloc[-1]/1e9, 2)))
+            st.markdown("**EBITDA (B):** " + str(round(fin_df['EBITDA'].iloc[-1]/1e9, 2)))
+            st.markdown("**Net Margin (%):** " + str(round((fin_df['Net Income'].iloc[-1] / fin_df['Total Revenue'].iloc[-1]) * 100, 2)))
+        except:
+            st.markdown("Financial data unavailable.")
+    with col1:
+        st.subheader("📊 Backtest: Cumulative Strategy")
+    fig, ax = plt.subplots(figsize=(6, 3))
     ax.plot(df["Date"], df["Cumulative"], label="Market", color="gray")
     ax.plot(df["Date"], df["Strategy Cum"], label="Strategy", color="blue")
     ax.set_title("Cumulative Returns vs Strategy")
+    ax.xaxis.set_major_locator(plt.MaxNLocator(6))
     ax.legend()
     st.pyplot(fig)
 
     st.markdown(f"**🟢 Live Signal:** {'Bullish' if reg['slope'] > 0 else 'Bearish' if reg['slope'] < 0 else 'Neutral'}")
-
