@@ -7,3 +7,4 @@ beautifulsoup4
 textblob
 transformers
 torch
+scipy
